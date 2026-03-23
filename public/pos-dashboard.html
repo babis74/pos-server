@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>POS Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+nav{background:#1d4ed8;color:#fff;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+nav .brand{font-size:16px;font-weight:700}
+nav .clock{font-size:13px;opacity:.8}
+.wrap{display:grid;grid-template-columns:1fr 320px;gap:14px;max-width:1080px;margin:0 auto;padding:16px}
+.label{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#64748b;margin-bottom:8px}
+.stock-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.sc{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 8px;text-align:center}
+.sc-name{font-size:11px;color:#64748b;margin-bottom:2px}
+.sc-qty{font-size:24px;font-weight:700;line-height:1}
+.sc-unit{font-size:10px;color:#94a3b8;margin-top:1px}
+.ok{color:#16a34a}.warn{color:#d97706}.low{color:#dc2626}
+.products{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.pb{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.15s;user-select:none}
+.pb:hover{border-color:#1d4ed8;background:#eff6ff}
+.pb:active{transform:scale(.97)}
+.pb-emoji{font-size:28px;margin-bottom:4px}
+.pb-name{font-size:13px;font-weight:600;color:#1e293b;margin-bottom:2px}
+.pb-price{font-size:13px;font-weight:700;color:#1d4ed8}
+.pb-stock{font-size:11px;color:#94a3b8;margin-top:2px}
+.pb.disabled{opacity:.4;pointer-events:none}
+.receipt{background:#fff;border:1px solid #e2e8f0;border-radius:12px;display:flex;flex-direction:column;position:sticky;top:16px}
+.rh{padding:12px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
+.rh h3{font-size:14px;font-weight:700}
+.rh button{font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;padding:3px 7px;border-radius:5px}
+.rh button:hover{background:#fef2f2}
+.ri-list{padding:6px 14px;min-height:100px;max-height:260px;overflow-y:auto}
+.ri{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid #f8fafc}
+.ri:last-child{border-bottom:none}
+.ri-name{flex:1;font-size:13px;font-weight:500}
+.qc{display:flex;align-items:center;gap:3px}
+.qb{width:22px;height:22px;border:1px solid #e2e8f0;border-radius:5px;background:#f8fafc;cursor:pointer;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#1e293b}
+.qb:hover{background:#e2e8f0}
+.ri-qty{font-size:13px;font-weight:700;min-width:18px;text-align:center}
+.ri-tot{font-size:13px;font-weight:700;color:#1d4ed8;min-width:46px;text-align:right}
+.xb{background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:15px;padding:0 1px}
+.xb:hover{color:#ef4444}
+.rf{padding:10px 14px;border-top:1px solid #f1f5f9}
+.trow{display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:3px}
+.trow.big{font-size:16px;font-weight:700;color:#1e293b;margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0}
+.trow.big span:last-child{color:#1d4ed8}
+.vnote{font-size:10px;color:#94a3b8;margin:4px 0 10px}
+.pbtn{width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+.pbtn:hover{background:#1e40af}
+.pbtn:disabled{background:#cbd5e1;cursor:not-allowed}
+.hist{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-top:14px;grid-column:1/-1}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:6px 8px;color:#64748b;font-weight:600;border-bottom:1px solid #f1f5f9;font-size:11px}
+td{padding:8px 8px;border-bottom:1px solid #f8fafc;color:#374151}
+tr:last-child td{border:none}
+.paid{background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.toast{position:fixed;bottom:20px;right:20px;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#fff;opacity:0;transform:translateY(6px);transition:.2s;pointer-events:none;z-index:9999}
+.toast.on{opacity:1;transform:translateY(0)}
+.t-ok{background:#16a34a}.t-err{background:#dc2626}.t-warn{background:#d97706}
+.sync-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:#dcfce7;color:#166534;padding:3px 8px;border-radius:20px;font-weight:600}
+.sync-badge.offline{background:#fee2e2;color:#991b1b}
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;z-index:999;font-size:15px;color:#1d4ed8;font-weight:600;gap:10px}
+.spinner{width:22px;height:22px;border:3px solid #bfdbfe;border-top-color:#1d4ed8;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media print{
+  @page{margin:10mm 15mm}
+  body>*{display:none!important}
+  #parea{display:block!important;margin:0 auto;width:auto}
+}
+#parea{display:none}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loader">
+  <div class="spinner"></div> Σύνδεση με Server...
+</div>
+
+<nav>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="brand">&#9635; POS Dashboard</span>
+    <span class="sync-badge" id="syncBadge">&#9679; Server</span>
+  </div>
+  <span class="clock" id="clk"></span>
+</nav>
+
+<div class="wrap">
+  <div>
+    <div class="label">Αποθήκη</div>
+    <div class="stock-row" id="stockRow"></div>
+    <div class="label">Προϊόντα</div>
+    <div class="products" id="prodGrid"></div>
+  </div>
+  <div class="receipt">
+    <div class="rh">
+      <h3>Απόδειξη</h3>
+      <button onclick="clearCart()">&#10005; Καθαρισμός</button>
+    </div>
+    <div class="ri-list" id="riList">
+      <div style="text-align:center;color:#94a3b8;font-size:13px;padding:28px 0">Επίλεξε προϊόντα...</div>
+    </div>
+    <div class="rf">
+      <div class="trow"><span>Καθαρή αξία</span><span id="tNet">€0.00</span></div>
+      <div class="trow"><span>ΦΠΑ 24%</span><span id="tVat">€0.00</span></div>
+      <div class="trow big"><span>ΣΥΝΟΛΟ</span><span id="tGrand">€0.00</span></div>
+      <div class="vnote">* Τιμές με ΦΠΑ 24%</div>
+      <button class="pbtn" id="printBtn" onclick="doPrint()" disabled>&#128438; Εκτύπωση Απόδειξης</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:0">
+  <div class="hist" style="grid-column:1/-1">
+    <div class="label" style="margin-bottom:10px">Ιστορικό Συναλλαγών</div>
+    <div id="histEmpty" style="text-align:center;color:#94a3b8;font-size:13px;padding:20px 0">Καμία συναλλαγή ακόμα.</div>
+    <table id="histTable" style="display:none">
+      <thead><tr><th>#</th><th>Ώρα</th><th>Είδη</th><th>Καθαρό</th><th>ΦΠΑ</th><th>Σύνολο</th><th></th></tr></thead>
+      <tbody id="histBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="parea"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// SERVER URL — ο Node.js server σου
+// ============================================================
+var API = 'http://localhost:3000/api';
+// ============================================================
+
+var VAT = 0.24;
+var txN = 0;
+var products = [];
+var cart = {};
+
+// --- API Helpers ---
+async function apiGet(path) {
+  var res = await fetch(API + path);
+  if (!res.ok) throw new Error('Server error: ' + res.status);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  var res = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('Server error: ' + res.status);
+  return res.json();
+}
+
+// --- Load products από Node.js server ---
+async function loadProducts() {
+  var data = await apiGet('/products');
+  products = data;
+  renderStock();
+  renderProducts();
+}
+
+// --- Load ιστορικό από Node.js server ---
+async function loadHistory() {
+  var data = await apiGet('/sales');
+  if (!data || !data.length) return;
+  document.getElementById('histEmpty').style.display = 'none';
+  document.getElementById('histTable').style.display = 'table';
+  var hb = document.getElementById('histBody');
+  hb.innerHTML = '';
+  data.forEach(function(s) {
+    var d = new Date(s.created_at);
+    var ts = d.toLocaleTimeString('el-GR', {hour:'2-digit', minute:'2-digit'});
+    var ds = d.toLocaleDateString('el-GR');
+    var items = s.items.map(function(i){ return i.name+' x'+i.qty; }).join(', ');
+    var row = document.createElement('tr');
+    row.innerHTML = '<td>#'+String(s.id).padStart(4,'0')+'</td>'
+      +'<td>'+ds+' '+ts+'</td>'
+      +'<td style="max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+items+'</td>'
+      +'<td>'+fmt(s.net)+'</td>'
+      +'<td>'+fmt(s.vat)+'</td>'
+      +'<td style="font-weight:700;color:#1d4ed8">'+fmt(s.total)+'</td>'
+      +'<td><span class="paid">Πληρώθηκε</span></td>';
+    hb.appendChild(row);
+  });
+  txN = data[0] ? data[0].id : 0;
+}
+
+function fmt(n){ return '€' + Number(n).toFixed(2); }
+
+function qClass(q){
+  if(q===0) return 'low';
+  if(q<=10) return 'warn';
+  return 'ok';
+}
+
+function getProduct(id){
+  return products.find(function(p){ return p.id===id; }) || null;
+}
+
+function renderStock(){
+  document.getElementById('stockRow').innerHTML = products.map(function(p){
+    return '<div class="sc">'
+      +'<div class="sc-name">'+p.name+'</div>'
+      +'<div class="sc-qty '+qClass(p.stock)+'">'+p.stock+'</div>'
+      +'<div class="sc-unit">τεμ.</div></div>';
+  }).join('');
+}
+
+function renderProducts(){
+  document.getElementById('prodGrid').innerHTML = products.map(function(p){
+    var dis = p.stock===0 ? ' disabled' : '';
+    return '<div class="pb'+dis+'" onclick="addItem('+p.id+')">'
+      +'<div class="pb-emoji">'+p.emoji+'</div>'
+      +'<div class="pb-name">'+p.name+'</div>'
+      +'<div class="pb-price">'+fmt(p.price)+'</div>'
+      +'<div class="pb-stock">'+p.stock+' τεμ.</div></div>';
+  }).join('');
+}
+
+function renderCart(){
+  var keys = Object.keys(cart);
+  var list = document.getElementById('riList');
+  var printBtn = document.getElementById('printBtn');
+  if(keys.length===0){
+    list.innerHTML='<div style="text-align:center;color:#94a3b8;font-size:13px;padding:28px 0">Επίλεξε προϊόντα...</div>';
+    document.getElementById('tNet').textContent='€0.00';
+    document.getElementById('tVat').textContent='€0.00';
+    document.getElementById('tGrand').textContent='€0.00';
+    printBtn.disabled=true;
+    return;
+  }
+  var grand=0, h='';
+  keys.forEach(function(k){
+    var id=parseInt(k), p=getProduct(id), qty=cart[id], tot=p.price*qty;
+    grand+=tot;
+    h+='<div class="ri">'
+      +'<span class="ri-name">'+p.emoji+' '+p.name+'</span>'
+      +'<div class="qc">'
+      +'<button class="qb" onclick="chQty('+id+',-1)">&#8722;</button>'
+      +'<span class="ri-qty">'+qty+'</span>'
+      +'<button class="qb" onclick="chQty('+id+',1)">&#43;</button>'
+      +'</div>'
+      +'<span class="ri-tot">'+fmt(tot)+'</span>'
+      +'<button class="xb" onclick="removeItem('+id+')">&#10005;</button>'
+      +'</div>';
+  });
+  list.innerHTML=h;
+  var net=grand/(1+VAT), vat=grand-net;
+  document.getElementById('tNet').textContent=fmt(net);
+  document.getElementById('tVat').textContent=fmt(vat);
+  document.getElementById('tGrand').textContent=fmt(grand);
+  printBtn.disabled=false;
+}
+
+function addItem(id){
+  var p=getProduct(id);
+  var inCart=cart[id]||0;
+  if(inCart>=p.stock){ toast('Δεν υπάρχει άλλο απόθεμα!','t-err'); return; }
+  cart[id]=inCart+1;
+  renderCart();
+  toast(p.emoji+' '+p.name+' προστέθηκε','t-ok');
+}
+
+function chQty(id,d){
+  var p=getProduct(id);
+  var nq=(cart[id]||0)+d;
+  if(nq<=0){ removeItem(id); return; }
+  if(nq>p.stock){ toast('Δεν υπάρχει άλλο απόθεμα!','t-err'); return; }
+  cart[id]=nq;
+  renderCart();
+}
+
+function removeItem(id){ delete cart[id]; renderCart(); }
+function clearCart(){ cart={}; renderCart(); }
+
+async function doPrint(){
+  var keys=Object.keys(cart);
+  if(!keys.length) return;
+
+  document.getElementById('printBtn').disabled=true;
+
+  var now=new Date();
+  var ds=now.toLocaleDateString('el-GR');
+  var ts=now.toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'});
+
+  var grand=0, rows='', saleItems=[];
+
+  try {
+    // Ετοίμασε τα items
+    keys.forEach(function(k){
+      var id=parseInt(k);
+      var p=getProduct(id);
+      var qty=cart[id];
+      var tot=p.price*qty;
+      grand+=tot;
+      rows+='<tr>'
+        +'<td style="padding:4px 0;text-align:left">'+p.name+'</td>'
+        +'<td style="padding:4px 0;text-align:center">'+qty+'</td>'
+        +'<td style="padding:4px 0;text-align:right">'+fmt(p.price)+'</td>'
+        +'<td style="padding:4px 0;text-align:right">'+fmt(tot)+'</td>'
+        +'</tr>';
+      saleItems.push({
+        id: id,
+        name: p.name,
+        qty: qty,
+        price: p.price,
+        newStock: p.stock - qty
+      });
+    });
+
+    var net=grand/(1+VAT), vat=grand-net;
+
+    // Στείλε στον Node.js server — αυτός ενημερώνει stock + αποθηκεύει πώληση
+    var result = await apiPost('/sales', {
+      total: parseFloat(grand.toFixed(2)),
+      net:   parseFloat(net.toFixed(2)),
+      vat:   parseFloat(vat.toFixed(2)),
+      items: saleItems
+    });
+
+    txN = result.sale ? result.sale.id : txN+1;
+    var num = String(txN).padStart(4,'0');
+
+    // Ενημέρωσε το τοπικό stock
+    saleItems.forEach(function(item){
+      var p = getProduct(item.id);
+      if(p) p.stock = item.newStock;
+    });
+
+    // Εκτύπωση
+    document.getElementById('parea').innerHTML =
+      '<div style="font-family:\'Courier New\',monospace;font-size:13px;color:#000;width:320px;margin:0 auto;padding:0">'
+      +'<div style="text-align:center;font-size:18px;font-weight:bold;margin-bottom:4px">MY SHOP POS</div>'
+      +'<div style="text-align:center;font-size:12px;margin-bottom:10px">'+ds+'  '+ts+'  |  #'+num+'</div>'
+      +'<div style="border-top:2px dashed #000;margin-bottom:8px"></div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+      +'<tr style="border-bottom:1px solid #000">'
+      +'<th style="text-align:left;padding:3px 0;width:50%">Είδος</th>'
+      +'<th style="text-align:center;padding:3px 0;width:15%">Τεμ</th>'
+      +'<th style="text-align:right;padding:3px 0;width:17%">Τιμή</th>'
+      +'<th style="text-align:right;padding:3px 0;width:18%">Σύν.</th>'
+      +'</tr>'+rows+'</table>'
+      +'<div style="border-top:2px dashed #000;margin-top:8px;padding-top:8px">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">Καθαρή αξία: <span>'+fmt(net)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">ΦΠΑ 24%: <span>'+fmt(vat)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:15px;margin-top:6px;border-top:1px solid #000;padding-top:6px">ΣΥΝΟΛΟ: <span>'+fmt(grand)+'</span></div>'
+      +'</div>'
+      +'<div style="border-top:2px dashed #000;margin-top:10px;padding-top:8px;text-align:center;font-size:12px">Ευχαριστούμε για την επίσκεψή σας!</div>'
+      +'</div>';
+
+    window.print();
+
+    cart={};
+    renderStock();
+    renderProducts();
+    renderCart();
+    await loadHistory();
+    toast('Απόδειξη #'+num+' αποθηκεύτηκε!','t-ok');
+
+  } catch(e) {
+    toast('Σφάλμα: '+e.message,'t-err');
+    document.getElementById('printBtn').disabled=false;
+  }
+}
+
+function toast(msg,cls){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast on '+cls;
+  clearTimeout(window._tt);
+  window._tt=setTimeout(function(){ t.className='toast'; },2800);
+}
+
+function tick(){
+  var n=new Date();
+  document.getElementById('clk').textContent=
+    n.toLocaleDateString('el-GR')+' '+
+    n.toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+async function init(){
+  tick();
+  setInterval(tick,1000);
+  try {
+    await loadProducts();
+    await loadHistory();
+    document.getElementById('syncBadge').innerHTML='&#9679; Server Συνδεδεμένος';
+    toast('Σύνδεση με server επιτυχής!','t-ok');
+  } catch(e) {
+    document.getElementById('syncBadge').className='sync-badge offline';
+    document.getElementById('syncBadge').innerHTML='&#9679; Offline';
+    toast('Σφάλμα — τρέχει ο server; (node server.js)','t-err');
+  }
+  document.getElementById('loader').style.display='none';
+}
+
+init();
+</script>
+</body>
+</html>
